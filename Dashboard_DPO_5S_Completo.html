@@ -190,7 +190,7 @@ function update(){
  mainTitle.textContent=`EVOLUCIÓN 5S POR ${view==="areas"?"ÁREA":"SECTOR"} - ${branch.toUpperCase()} - DEL PALACIO S.A.`;yearLabel.textContent=y||"";branchInfo.textContent=`${branch} · ${view==="areas"?"Vista por áreas":"Vista por sectores"} · ${branchRows().length} auditorías`;
  km.textContent=mr.length?avg(mr.map(x=>x.puntaje)).toFixed(1)+"%":"-";ky.textContent=yr.length?avg(yr.map(x=>x.puntaje)).toFixed(1)+"%":"-";ka.textContent=mr.length;ke.textContent=new Set(mr.map(entity)).size;entityLabel.textContent=view==="areas"?"Áreas evaluadas":"Sectores evaluados";let c=0;mr.forEach(x=>x.respuestas.forEach(v=>{if(v!=null&&v<=2)c++}));kc.textContent=c;
  let ss=["Organizar","Ordenar","Limpiar","Estandarizar","Disciplina"];barsMonth.innerHTML=bars(ss.map(s=>[s,avg(mr.map(x=>x.cincoS[s]))]));barsYtd.innerHTML=bars(ss.map(s=>[s,avg(yr.map(x=>x.cincoS[s]))]));drawRadar(ss.map(s=>avg(yr.map(x=>x.cincoS[s]))));
- matrixTitle.textContent=view==="areas"?"Matriz mensual por área y dueño":"Matriz mensual por sector";rankMainTitle.textContent=view==="areas"?"Ranking mensual por área":"Ranking mensual por sector";rankSecondTitle.textContent=view==="areas"?"Ranking mensual por dueño":"Ranking mensual por área";trendTitle.textContent=view==="areas"?"Evolución mensual por área":"Evolución mensual por sector";
+ matrixTitle.textContent=view==="areas"?"Matriz mensual por área y dueño":"Matriz mensual por sector";rankMainTitle.textContent=view==="areas"?"Ranking mensual por área":"Ranking mensual por sector";rankSecondTitle.textContent=view==="areas"?"Ranking mensual por dueño":"Ranking mensual por área";trendTitle.textContent=view==="areas"?"Evolución mensual por área":"Evolución mensual de sectores críticos";
  buildMatrix(r,y);buildRankings(mr);buildQuestions(mr);drawTrend(r,y);detail.innerHTML=mr.sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x=>`<tr><td>${x.fecha}</td><td class="${areaClass(x.area)}">${x.area}</td><td class="owner">${owner(x.area)}</td><td>${x.sector}</td><td>${x.auditor}</td><td>${dot(x.puntaje)}</td><td class="left">${x.observaciones||"-"}</td><td class="left">${x.accion||"-"}</td></tr>`).join("");
 }
 function buildMatrix(r,y){
@@ -247,8 +247,8 @@ function drawRadar(vals){
 function drawTrend(r,y){
  let c=trend,ctx=c.getContext("2d"),rect=c.getBoundingClientRect(),d=devicePixelRatio||1;
  c.width=rect.width*d;c.height=rect.height*d;ctx.scale(d,d);
- let w=rect.width,h=rect.height,pL=50,pR=92,pT=18,pB=42;
- if(w<700){pR=48;pB=54}
+ let w=rect.width,h=rect.height,pL=50,pR=view==="sectores"?160:92,pT=18,pB=42;
+ if(w<700){pR=view==="sectores"?76:48;pB=54}
  ctx.clearRect(0,0,w,h);
  let plotW=w-pL-pR,plotH=h-pT-pB,objective=80;
  let yFor=v=>h-pB-v/100*plotH;
@@ -265,8 +265,12 @@ function drawTrend(r,y){
   ctx.beginPath();ctx.moveTo(pL,yy);ctx.lineTo(w-pR,yy);ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle="#667085";ctx.font="11px Arial";ctx.textAlign="right";ctx.fillText(v+"%",pL-7,yy+4);
  });
- let ents=uniq(r.filter(x=>x.anio===y),view==="areas"?"area":"sector").slice(0,12);
+ let allEnts=uniq(r.filter(x=>x.anio===y),view==="areas"?"area":"sector");
+ let seriesInfo=allEnts.map(e=>{let pts=[];for(let m=1;m<=12;m++){let z=r.filter(x=>x.anio===y&&(view==="areas"?x.area:x.sector)===e&&x.mes===m).map(x=>x.puntaje);if(z.length)pts.push({m,v:avg(z),n:z.length})}let last=pts[pts.length-1];return{e,pts,last,count:pts.reduce((s,p)=>s+p.n,0)}}).filter(x=>x.last);
+ let selected=view==="sectores"?seriesInfo.sort((a,b)=>(a.last.v-b.last.v)||(b.count-a.count)).slice(0,6):seriesInfo.slice(0,12);
+ let ents=selected.map(x=>x.e),hidden=Math.max(0,allEnts.length-ents.length);
  let cs=["#2d6ea6","#2e9d50","#d59b17","#8b5fbf","#cc5d43","#00a1a7","#7f8c8d","#8e44ad","#16a085","#c0392b","#2980b9","#27ae60"];
+ let labelSlots=[];
  ents.forEach((e,ix)=>{
   let color=cs[ix%cs.length],last=null,st=false,points=[];
   ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
@@ -279,7 +283,15 @@ function drawTrend(r,y){
   }
   ctx.stroke();
   points.forEach(p=>{ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(p.xx,p.yy,5,0,Math.PI*2);ctx.fill();ctx.lineWidth=2;ctx.strokeStyle=color;ctx.stroke()});
-  if(last){let value=last.v.toFixed(0)+"%", bx=Math.min(last.xx+8,w-pR+12), by=Math.max(pT+4,Math.min(last.yy-11,h-pB-22));ctx.fillStyle=color;ctx.beginPath();roundBox(ctx,bx,by,36,18,9);ctx.fill();ctx.fillStyle="#fff";ctx.font="700 11px Arial";ctx.textAlign="center";ctx.fillText(value,bx+18,by+13);ctx.fillStyle=color;ctx.font="700 11px Arial";ctx.textAlign="left";ctx.fillText(e,bx+42,by+13)}
+  if(last){labelSlots.push({last,color,e})}
+ });
+ labelSlots.sort((a,b)=>a.last.yy-b.last.yy).forEach((item,i)=>{
+  let rowY=Math.max(pT+6,Math.min(item.last.yy-9,pT+8+i*22)),value=item.last.v.toFixed(0)+"%",bx=Math.min(item.last.xx+8,w-pR+12);
+  if(view==="sectores")bx=w-pR+8;
+  ctx.strokeStyle=item.color;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(item.last.xx+5,item.last.yy);ctx.lineTo(bx,rowY+9);ctx.stroke();
+  ctx.fillStyle=item.color;ctx.beginPath();roundBox(ctx,bx,rowY,36,18,9);ctx.fill();
+  ctx.fillStyle="#fff";ctx.font="700 11px Arial";ctx.textAlign="center";ctx.fillText(value,bx+18,rowY+13);
+  ctx.fillStyle=item.color;ctx.font="700 11px Arial";ctx.textAlign="left";ctx.fillText(item.e,bx+42,rowY+13);
  });
  let yo=yFor(objective);
  ctx.fillStyle="#d93c31";ctx.font="700 11px Arial";ctx.textAlign="left";ctx.fillText("Objetivo 80%",pL+6,yo-7);
@@ -287,7 +299,7 @@ function drawTrend(r,y){
   let hasData=ents.some(e=>r.some(x=>x.anio===y&&(view==="areas"?x.area:x.sector)===e&&x.mes===i+1));
   ctx.fillStyle=hasData?"#334155":"#a8b2bd";ctx.font=hasData?"700 10px Arial":"10px Arial";ctx.textAlign="center";ctx.fillText(m.slice(0,3),xFor(i+1),h-14);
  });
- trendLegend.innerHTML=`<span><i class="dot" style="background:#2e9d50"></i>>=85%</span><span><i class="dot" style="background:#e5ad18"></i>70-84%</span><span><i class="dot" style="background:#d93c31"></i>&lt;70%</span>`+ents.map((e,i)=>`<span><i class="dot" style="background:${cs[i%cs.length]}"></i>${e}</span>`).join("");
+ trendLegend.innerHTML=`<span><i class="dot" style="background:#2e9d50"></i>>=85%</span><span><i class="dot" style="background:#e5ad18"></i>70-84%</span><span><i class="dot" style="background:#d93c31"></i>&lt;70%</span>`+ents.map((e,i)=>`<span><i class="dot" style="background:${cs[i%cs.length]}"></i>${e}</span>`).join("")+(hidden?`<span>+${hidden} sectores ocultos para legibilidad</span>`:"");
 }
 function currentYear(){return Math.max(...DATA.map(x=>x.anio).filter(Boolean),new Date().getFullYear())}
 function latestMonth(rows,y){let ms=rows.filter(x=>x.anio===y).map(x=>x.mes).filter(Boolean);return ms.length?Math.max(...ms):1}
