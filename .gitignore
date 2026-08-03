@@ -1,0 +1,41 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# VS Code local workspace state
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependency / build folders, in case the project grows
+node_modules/
+dist/
+build/
+.next/
+.vite/
+coverage/
+
+# Environment and local config
+.env
+.env.*
+!.env.example
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+~$*
+
+# Local browser/test artifacts
+screenshots/
+playwright-report/
+test-results/
