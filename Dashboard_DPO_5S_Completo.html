@@ -26,6 +26,7 @@ table{width:100%;border-collapse:collapse}th,td{border:1px solid #aeb7c0;padding
 .note{background:#fff;border:1px solid #ead69b;border-left:5px solid var(--yellow);padding:12px;margin-bottom:10px;border-radius:8px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;box-shadow:0 1px 4px rgba(23,59,99,.05)}.note-title{font-size:11px;font-weight:900;color:#7a5300;text-transform:uppercase}.scale-chips,.signal-chips{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.scale-chip,.signal-chip{border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800;white-space:nowrap}.scale-chip{background:#f3f6fa;color:#334155;border:1px solid #d7dee8}.signal-chip{color:#fff}.signal-green{background:var(--green)}.signal-yellow{background:var(--yellow);color:#3b2a00}.signal-red{background:var(--red)}.target-chip{background:#173b63;color:#fff;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:900;white-space:nowrap}
 .methodology{display:none;max-width:1200px;margin:0 auto;padding:0 12px 28px}.methodology.active{display:block}.method-head{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:12px;display:grid;grid-template-columns:120px 1fr 220px;gap:18px;align-items:center}.brand-mark{width:96px;height:96px;object-fit:contain;justify-self:center}.brand-dpo{max-width:220px;width:100%;height:auto;justify-self:end}.method-title h2{margin:0 0 6px;color:var(--navy);font-size:clamp(22px,3vw,34px);line-height:1.1}.method-title p{margin:0;color:#4b5563;font-size:14px}.policy-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;box-shadow:0 1px 4px rgba(23,59,99,.06)}.policy-card img{display:block;width:100%;height:auto;border-radius:6px;border:1px solid #d7dee6}
 .general{display:none;max-width:1600px;margin:0 auto;padding:0 12px 28px}.general.active{display:block}.compare-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px}.branch-card{background:#fff;border:1px solid #c8cdd2;border-radius:8px;padding:14px;border-top:5px solid var(--blue);box-shadow:0 1px 4px rgba(23,59,99,.06)}.branch-card h3{margin:0 0 10px;color:var(--navy);font-size:18px}.branch-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.mini-metric{background:#f5f8fb;border:1px solid #dbe3eb;border-radius:7px;padding:9px}.mini-metric small{display:block;color:#64748b;font-size:10px;text-transform:uppercase;font-weight:800}.mini-metric b{display:block;color:#173b63;font-size:20px;margin-top:3px}.delta{font-weight:900}.delta.up{color:var(--green)}.delta.down{color:var(--red)}.insights{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}.insight{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px}.insight small{display:block;color:#64748b;font-size:10px;text-transform:uppercase;font-weight:900}.insight b{display:block;color:#173b63;font-size:16px;margin-top:5px;line-height:1.25}.canvas.tall{height:380px}
+.general-bars{display:grid;gap:12px}.general-bar-card{border:1px solid #d8e0e8;background:#f8fafc;border-radius:8px;padding:11px}.general-bar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}.general-bar-head b{color:var(--navy);font-size:14px}.general-bar-head span{font-size:11px;color:#64748b;font-weight:800}.general-bar-card .bar{grid-template-columns:64px minmax(120px,1fr) 48px;margin:7px 0}.general-bar-card .track{height:22px;background:#dbe3eb}.general-bar-card .fill{font-size:11px}.general-note{font-size:11px;color:#64748b;text-align:right;margin-top:7px;font-weight:800}
 .winners{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:8px;margin-bottom:12px}.winner{background:#fff;border:1px solid #c8cdd2;border-radius:8px;padding:10px;border-top:4px solid var(--green);box-shadow:0 1px 4px rgba(23,59,99,.06)}.winner small{display:block;color:#64748b;font-size:10px;text-transform:uppercase;font-weight:900}.winner b{display:block;color:#173b63;font-size:15px;margin-top:4px;line-height:1.2}.winner span{display:block;margin-top:4px;font-size:11px;color:#4b5563}.winner .score{display:inline-block;margin-top:6px;border-radius:999px;padding:4px 8px;background:#dcfce7;color:#166534;font-weight:900;font-size:11px}
 .detail th{position:sticky;top:0;background:#8ab6df;color:#111}.detail td{font-size:11px}
 .badge{font-weight:800}.hidden{display:none}
@@ -337,21 +338,46 @@ function latestMonth(rows,y){let ms=rows.filter(x=>x.anio===y).map(x=>x.mes).fil
 function branchSummary(b,y,m){let rows=DATA.filter(x=>x.ubicacion===b),bm=latestMonth(rows,y),compareMonth=m||bm,mr=rows.filter(x=>x.anio===y&&x.mes===bm),yr=rows.filter(x=>x.anio===y&&x.mes<=compareMonth),areas=group(yr,x=>x.area),weakS=["Organizar","Ordenar","Limpiar","Estandarizar","Disciplina"].map(s=>[s,avg(yr.map(x=>x.cincoS[s]))]).sort((a,b)=>a[1]-b[1]);return{branch:b,rows,mr,yr,monthNum:bm,month:avg(mr.map(x=>x.puntaje)),ytd:avg(yr.map(x=>x.puntaje)),audits:rows.length,monthAudits:mr.length,areas:uniq(rows,"area").length,sectors:uniq(rows,"sector").length,best:areas[0]||["-",0],worst:areas[areas.length-1]||["-",0],weakS:weakS[0]||["-",0]}}
 function deltaText(a,b){let d=a-b,cls=d>=0?"up":"down";return`<span class="delta ${cls}">${d>=0?"+":""}${d.toFixed(1)} pts</span>`}
 function renderBranchCards(items){branchCompare.innerHTML=items.map(s=>`<div class="branch-card"><h3>${s.branch}</h3><div class="branch-metrics"><div class="mini-metric"><small>Último mes (${MONTHS[s.monthNum-1]||"-"})</small><b>${s.mr.length?s.month.toFixed(1)+"%":"-"}</b></div><div class="mini-metric"><small>YTD</small><b>${s.yr.length?s.ytd.toFixed(1)+"%":"-"}</b></div><div class="mini-metric"><small>Auditorías</small><b>${s.audits}</b></div><div class="mini-metric"><small>Áreas / sectores</small><b>${s.areas}/${s.sectors}</b></div></div><div class="note" style="margin:12px 0 0;display:block"><b>Mejor área YTD:</b> ${s.best[0]} (${s.best[1].toFixed(0)}%) · <b>Área a reforzar YTD:</b> ${s.worst[0]} (${s.worst[1].toFixed(0)}%)</div></div>`).join("")}
-function renderGeneralBars(items){generalBars.innerHTML=items.map(s=>`<div class="bar"><div class="bar-name">${s.branch} mes</div><div class="track"><div class="fill" style="width:${Math.max(s.month,4)}%;background:${col(s.month)}">${s.month.toFixed(0)}%</div></div><b>${s.month.toFixed(0)}%</b></div><div class="bar"><div class="bar-name">${s.branch} YTD</div><div class="track"><div class="fill" style="width:${Math.max(s.ytd,4)}%;background:${col(s.ytd)}">${s.ytd.toFixed(0)}%</div></div><b>${s.ytd.toFixed(0)}%</b></div>`).join("")}
-function drawGeneralRadar(items){let c=generalRadar,ctx=c.getContext("2d"),rect=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=rect.width*d;c.height=rect.height*d;ctx.scale(d,d);let w=rect.width,h=rect.height,n=5,cx=w/2,cy=h/2+10,R=Math.min(w*.30,h*.32),labels=["Organizar","Ordenar","Limpiar","Estandarizar","Disciplina"],colors=["#2d6ea6","#2e9d50"];ctx.clearRect(0,0,w,h);for(let level=1;level<=5;level++){ctx.beginPath();for(let i=0;i<n;i++){let p=polygonPoint(cx,cy,R*level/5,i,n);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)}ctx.closePath();ctx.strokeStyle=level===4?"#9aaec1":"#d5dde6";ctx.setLineDash(level===4?[5,4]:[]);ctx.stroke();ctx.setLineDash([])}labels.forEach((lab,i)=>{let p=polygonPoint(cx,cy,R+42,i,n);ctx.fillStyle="#334155";ctx.font="12px Arial";ctx.textAlign=p.x<cx-8?"right":p.x>cx+8?"left":"center";ctx.fillText(lab,p.x,p.y)});items.forEach((s,ix)=>{let vals=labels.map(l=>avg(s.yr.map(x=>x.cincoS[l])));ctx.beginPath();vals.forEach((v,i)=>{let p=polygonPoint(cx,cy,R*v/100,i,n);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)});ctx.closePath();ctx.fillStyle=ix? "rgba(46,157,80,.20)":"rgba(45,110,166,.22)";ctx.fill();ctx.strokeStyle=colors[ix];ctx.lineWidth=2.5;ctx.stroke();vals.forEach((v,i)=>{let p=polygonPoint(cx,cy,R*v/100,i,n);ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fillStyle=colors[ix];ctx.fill()})});generalRadarLegend.innerHTML=items.map((s,i)=>`<span><i class="dot" style="background:${colors[i]}"></i>${s.branch}</span>`).join("")+`<span><i class="dot" style="background:#d93c31"></i>Objetivo 80%</span>`}
+function renderGeneralBars(items){generalBars.className="general-bars";generalBars.innerHTML=items.map(s=>{let d=s.month-s.ytd;return`<div class="general-bar-card"><div class="general-bar-head"><b>${s.branch}</b><span>${d>=0?"+":""}${d.toFixed(1)} pts mes vs YTD</span></div><div class="bar"><div class="bar-name">Mes</div><div class="track"><div class="fill" style="width:${Math.max(s.month,4)}%;background:${col(s.month)}">${s.month.toFixed(0)}%</div></div><b>${s.month.toFixed(0)}%</b></div><div class="bar"><div class="bar-name">YTD</div><div class="track"><div class="fill" style="width:${Math.max(s.ytd,4)}%;background:${col(s.ytd)}">${s.ytd.toFixed(0)}%</div></div><b>${s.ytd.toFixed(0)}%</b></div></div>`}).join("")+`<div class="general-note">Objetivo operativo: 80% · Verde desde 85%</div>`}
+function drawGeneralRadar(items){
+ let c=generalRadar,ctx=c.getContext("2d"),rect=c.getBoundingClientRect(),d=devicePixelRatio||1;
+ c.width=rect.width*d;c.height=rect.height*d;ctx.scale(d,d);
+ let w=rect.width,h=rect.height,n=5,cx=w/2,cy=h/2+14,R=Math.min(w*.27,h*.30),labels=["Organizar","Ordenar","Limpiar","Estandarizar","Disciplina"],colors=["#173b63","#2e9d50"];
+ if(w<520){R=Math.min(w*.23,h*.28);cy=h/2+20}
+ ctx.clearRect(0,0,w,h);ctx.lineJoin="round";
+ for(let level=5;level>=1;level--){
+  let rr=R*level/5;
+  ctx.beginPath();for(let i=0;i<n;i++){let p=polygonPoint(cx,cy,rr,i,n);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)}
+  ctx.closePath();ctx.fillStyle=level%2?"rgba(23,59,99,.035)":"rgba(23,59,99,.065)";ctx.fill();
+  ctx.strokeStyle=level===4?"#d93c31":"#d5dde6";ctx.lineWidth=level===4?1.8:1;ctx.setLineDash(level===4?[6,4]:[]);ctx.stroke();ctx.setLineDash([]);
+ }
+ for(let i=0;i<n;i++){let p=polygonPoint(cx,cy,R,i,n);ctx.strokeStyle="#d5dde6";ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(p.x,p.y);ctx.stroke()}
+ [20,40,60,80,100].forEach(v=>{let p=polygonPoint(cx,cy,R*v/100,0,n);ctx.fillStyle=v===80?"#d93c31":"#7b8794";ctx.font=v===80?"700 11px Arial":"11px Arial";ctx.textAlign="center";ctx.fillText(v+"%",cx+24,p.y+4)});
+ labels.forEach((lab,i)=>{let p=polygonPoint(cx,cy,R+48,i,n);ctx.fillStyle="#263445";ctx.font="700 12px Arial";ctx.textAlign=p.x<cx-8?"right":p.x>cx+8?"left":"center";ctx.fillText(lab,p.x,p.y)});
+ items.forEach((s,ix)=>{
+  let vals=labels.map(l=>avg(s.yr.map(x=>x.cincoS[l])));
+  ctx.beginPath();vals.forEach((v,i)=>{let p=polygonPoint(cx,cy,R*v/100,i,n);i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)});
+  ctx.closePath();ctx.fillStyle=ix?"rgba(46,157,80,.18)":"rgba(23,59,99,.18)";ctx.fill();ctx.strokeStyle=colors[ix];ctx.lineWidth=3;ctx.stroke();
+  vals.forEach((v,i)=>{let p=polygonPoint(cx,cy,R*v/100,i,n);ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fillStyle=col(v);ctx.fill();ctx.lineWidth=2;ctx.strokeStyle="#fff";ctx.stroke()});
+ });
+ generalRadarLegend.innerHTML=items.map((s,i)=>`<span><i class="dot" style="background:${colors[i]}"></i>${s.branch}</span>`).join("")+`<span><i class="dot" style="background:#d93c31"></i>Objetivo 80%</span>`
+}
 function drawGeneralTrend(y){
  let c=generalTrend,ctx=c.getContext("2d"),rect=c.getBoundingClientRect(),d=devicePixelRatio||1;
  c.width=rect.width*d;c.height=rect.height*d;ctx.scale(d,d);
- let w=rect.width,h=rect.height,pL=50,pR=90,pT=18,pB=42,plotW=w-pL-pR,plotH=h-pT-pB;
+ let w=rect.width,h=rect.height,pL=54,pR=130,pT=22,pB=48,plotW=w-pL-pR,plotH=h-pT-pB;
  let yFor=v=>h-pB-v/100*plotH,xFor=m=>pL+(m-1)*plotW/11;
- let branches=["Casa Central","Dolores"],colors=["#2d6ea6","#2e9d50"];
+ let branches=["Casa Central","Dolores"],colors=["#173b63","#2e9d50"];
  ctx.clearRect(0,0,w,h);
+ ctx.fillStyle="#f8fafc";ctx.fillRect(pL,pT,plotW,plotH);
  [0,20,40,60,80,100].forEach(v=>{
   let yy=yFor(v);
-  ctx.strokeStyle=v===80?"#d93c31":"#d8dee5";ctx.setLineDash(v===80?[6,5]:[]);
+  ctx.strokeStyle=v===80?"#d93c31":"#d8dee5";ctx.lineWidth=v===80?1.8:1;ctx.setLineDash(v===80?[7,5]:[]);
   ctx.beginPath();ctx.moveTo(pL,yy);ctx.lineTo(w-pR,yy);ctx.stroke();ctx.setLineDash([]);
-  ctx.fillStyle="#667085";ctx.font="11px Arial";ctx.textAlign="right";ctx.fillText(v+"%",pL-7,yy+4);
+  ctx.fillStyle=v===80?"#d93c31":"#667085";ctx.font=v===80?"700 11px Arial":"11px Arial";ctx.textAlign="right";ctx.fillText(v+"%",pL-7,yy+4);
  });
+ ctx.fillStyle="#d93c31";ctx.font="700 11px Arial";ctx.textAlign="left";ctx.fillText("Objetivo",w-pR+8,yFor(80)+4);
+ let labels=[];
  branches.forEach((b,ix)=>{
   let points=[];
   for(let m=1;m<=12;m++){
@@ -359,13 +385,14 @@ function drawGeneralTrend(y){
    if(!z.length)continue;
    let v=avg(z);points.push({xx:xFor(m),yy:yFor(v),v});
   }
-  ctx.strokeStyle=colors[ix];ctx.lineWidth=2.5;ctx.beginPath();
+  ctx.strokeStyle=colors[ix];ctx.lineWidth=3;ctx.beginPath();
   points.forEach((p,i)=>i?ctx.lineTo(p.xx,p.yy):ctx.moveTo(p.xx,p.yy));
   ctx.stroke();
-  points.forEach(p=>{ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(p.xx,p.yy,5,0,Math.PI*2);ctx.fill();ctx.strokeStyle=colors[ix];ctx.lineWidth=2;ctx.stroke()});
+  points.forEach(p=>{ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(p.xx,p.yy,5,0,Math.PI*2);ctx.fill();ctx.strokeStyle=colors[ix];ctx.lineWidth=2;ctx.stroke();ctx.fillStyle=colors[ix];ctx.font="700 10px Arial";ctx.textAlign="center";ctx.fillText(p.v.toFixed(0),p.xx,p.yy-10)});
   let last=points[points.length-1];
-  if(last){ctx.fillStyle=colors[ix];ctx.font="700 11px Arial";ctx.textAlign="left";ctx.fillText(`${b} ${last.v.toFixed(0)}%`,last.xx+8,last.yy-6)}
+  if(last)labels.push({b,color:colors[ix],x:last.xx+10,y:last.yy-8,v:last.v})
  });
+ labels.sort((a,b)=>a.y-b.y).forEach((x,i,a)=>{if(i&&x.y-a[i-1].y<18)x.y=a[i-1].y+18;x.y=Math.min(h-pB-8,Math.max(pT+12,x.y));ctx.fillStyle=x.color;ctx.font="700 12px Arial";ctx.textAlign="left";ctx.fillText(`${x.b} ${x.v.toFixed(0)}%`,x.x,x.y)});
  MONTHS.forEach((m,i)=>{ctx.fillStyle="#667085";ctx.font="10px Arial";ctx.textAlign="center";ctx.fillText(m.slice(0,3),xFor(i+1),h-14)});
  generalTrendLegend.innerHTML=branches.map((b,i)=>`<span><i class="dot" style="background:${colors[i]}"></i>${b}</span>`).join("");
 }
