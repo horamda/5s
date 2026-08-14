@@ -182,8 +182,14 @@ function dp(v){let p=String(v).split("/");if(p.length===3)return{y:+p[2],m:+p[1]
 function clean(v){return String(v??"").trim()}
 function key(v){return clean(v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}
 function normBranch(v){let k=key(v);if(k==="casa central")return"Casa Central";if(k==="dolores")return"Dolores";return""}
+function normAreaBySector(area,sector){
+ let a=clean(area),s=key(sector);
+ if(["jaula","canchas","producto terminado"].includes(s))return"Almacen";
+ if(["administracion","ventas","logistica"].includes(s))return"Oficinas";
+ return a
+}
 function field(raw,needle){let n=key(needle);let k=Object.keys(raw).find(x=>key(x).includes(n));return k?raw[k]:""}
-function norm(raw){let q=Object.keys(raw).filter(k=>/^\d+\./.test(k));let d=dp(raw.Fecha);let scores=q.map(k=>{let m=String(raw[k]).match(/^\s*([1-5])/);return m?+m[1]:null});let g={Organizar:scores.slice(0,4),Ordenar:scores.slice(4,8),Limpiar:scores.slice(8,12),Estandarizar:scores.slice(12,16),Disciplina:scores.slice(16,20)};return{fecha:d.iso,anio:d.y,mes:d.m,ubicacion:normBranch(raw.Ubicacion),area:clean(raw.Area),sector:clean(raw.Sector),auditor:clean(raw.Auditor),observaciones:field(raw,"observaciones")||field(raw,"desv"),accion:field(raw,"accion"),respuestas:scores,preguntas:q.map(x=>x.replace(/^\d+\.\s*/,"").trim()),puntaje:avg(scores.map(x=>x==null?null:x*20)),cincoS:Object.fromEntries(Object.entries(g).map(([k,v])=>[k,avg(v.map(x=>x==null?null:x*20))]))}}
+function norm(raw){let q=Object.keys(raw).filter(k=>/^\d+\./.test(k));let d=dp(raw.Fecha),sector=clean(raw.Sector);let scores=q.map(k=>{let m=String(raw[k]).match(/^\s*([1-5])/);return m?+m[1]:null});let g={Organizar:scores.slice(0,4),Ordenar:scores.slice(4,8),Limpiar:scores.slice(8,12),Estandarizar:scores.slice(12,16),Disciplina:scores.slice(16,20)};return{fecha:d.iso,anio:d.y,mes:d.m,ubicacion:normBranch(raw.Ubicacion),area:normAreaBySector(raw.Area,sector),sector,auditor:clean(raw.Auditor),observaciones:field(raw,"observaciones")||field(raw,"desv"),accion:field(raw,"accion"),respuestas:scores,preguntas:q.map(x=>x.replace(/^\d+\.\s*/,"").trim()),puntaje:avg(scores.map(x=>x==null?null:x*20)),cincoS:Object.fromEntries(Object.entries(g).map(([k,v])=>[k,avg(v.map(x=>x==null?null:x*20))]))}}
 function ownerByBranch(b,a){return (OWNERS[b]&&OWNERS[b][a])||"Sin asignar"}
 function owner(a){return ownerByBranch(branch,a)}function col(v){return v>=85?"#2e9d50":v>=70?"#e5ad18":"#d93c31"}function dot(v){return `<span class="dot" style="background:${col(v)}"></span>${v.toFixed(0)}%`}function uniq(r,f){return [...new Set(r.map(x=>x[f]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)))}
 function fill(id,v,label="Todos"){document.getElementById(id).innerHTML=`<option value="">${label}</option>`+v.map(x=>`<option value="${x}">${String(x).includes("|")?String(x).split("|")[1]:x}</option>`).join("")}
@@ -205,7 +211,8 @@ function update(){
  buildMatrix(r,y);buildRankings(mr);buildQuestions(mr);buildWinners(mr);drawTrend(r,y);detail.innerHTML=mr.sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x=>`<tr><td>${x.fecha}</td><td class="${areaClass(x.area)}">${x.area}</td><td class="owner">${owner(x.area)}</td><td>${x.sector}</td><td>${x.auditor}</td><td>${dot(x.puntaje)}</td><td class="left">${x.observaciones||"-"}</td><td class="left">${x.accion||"-"}</td></tr>`).join("");
 }
 function buildMatrix(r,y){
- let entities=uniq(r.filter(x=>x.anio===y),view==="areas"?"area":"sector").map(e=>{let vals=[];for(let m=1;m<=12;m++){let z=r.filter(x=>x.anio===y&&(view==="areas"?x.area:x.sector)===e&&x.mes===m).map(x=>x.puntaje);if(z.length)vals.push(avg(z))}return{e,vals,ytd:avg(vals)}}).sort((a,b)=>b.ytd-a.ytd||String(a.e).localeCompare(String(b.e)));
+ let limitMonth=fm.value?+fm.value.split("|")[0]:Math.max(...r.filter(x=>x.anio===y).map(x=>x.mes).filter(Boolean),1);
+ let entities=uniq(r.filter(x=>x.anio===y),view==="areas"?"area":"sector").map(e=>{let ytdRows=r.filter(x=>x.anio===y&&x.mes<=limitMonth&&(view==="areas"?x.area:x.sector)===e).map(x=>x.puntaje);return{e,ytd:avg(ytdRows)}}).sort((a,b)=>b.ytd-a.ytd||String(a.e).localeCompare(String(b.e)));
  let h="<thead><tr><th>"+(view==="areas"?"Dueño":"Área")+"</th><th>"+(view==="areas"?"Área":"Sector")+"</th>"+MONTHS.map(x=>`<th>${x}</th>`).join("")+"<th>YTD</th></tr></thead><tbody>";
  entities.forEach(({e,ytd})=>{let sample=r.find(x=>(view==="areas"?x.area:x.sector)===e);let first=view==="areas"?owner(e):(sample?sample.area:"");h+=`<tr><td class="${view==="areas"?"owner":areaClass(first)}">${first}</td><td class="${view==="areas"?areaClass(e):""}"><b>${e}</b></td>`;for(let m=1;m<=12;m++){let z=r.filter(x=>x.anio===y&&(view==="areas"?x.area:x.sector)===e&&x.mes===m).map(x=>x.puntaje);let v=avg(z);h+=`<td>${z.length?dot(v):"-"}</td>`}h+=`<td>${ytd?dot(ytd):"-"}</td></tr>`});matrix.innerHTML=h+"</tbody>";
 }
