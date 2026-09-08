@@ -41,3 +41,5 @@ En Casa Central o Dolores, seleccionar año, mes y los filtros deseados, y pulsa
 El reporte respeta los filtros de área, sector y auditor. El acumulado YTD y los gráficos se cortan en el mes seleccionado; si se deja el mes automático, se usa el último mes disponible para esos filtros. Al cerrar, se conservan la solapa y los filtros originales.
 
 La vista previa incluye navegación entre secciones y tablas desplazables en celulares. **Imprimir / Guardar PDF** abre la impresión del navegador, preparada para A4 horizontal con tablas completas. Elegir **Guardar como PDF** para descargarlo. El encabezado identifica la sucursal, el período, los filtros y el estado de la fuente de datos.
+
+En **General**, seleccionar año y mes y pulsar **Reporte del mes** para generar el comparativo de Casa Central y Dolores: resultados mensuales y YTD, gráficos, rankings y matrices por área y sector de ambas sucursales. Este consolidado incluye todas las áreas, sectores y auditores; sus fechas son independientes de los filtros de las solapas de sucursal. Cuando una sucursal no tiene auditorías en el mes elegido, se muestra sin datos mensuales y se conserva el acumulado disponible.

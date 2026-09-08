@@ -132,12 +132,17 @@ table{width:100%;border-collapse:collapse}th,td{border:1px solid #aeb7c0;padding
     <div class="panel-actions">
       <div class="data-counts" id="generalCounts"></div>
       <button class="refresh" onclick="loadLive(false).then(showGeneral)">Actualizar datos</button>
+      <button class="refresh" onclick="openMonthlyReport()">Reporte del mes</button>
     </div>
+  </div>
+  <div class="filters general-filters">
+    <div><label for="generalYear">Año</label><select id="generalYear" onchange="showGeneral()"></select></div>
+    <div><label for="generalMonth">Mes</label><select id="generalMonth" onchange="showGeneral()"></select></div>
   </div>
   <div class="kpis">
     <div class="kpi"><small>Resultado general del mes</small><strong id="gMonth">-</strong></div>
     <div class="kpi"><small>Resultado general YTD</small><strong id="gYtd">-</strong></div>
-    <div class="kpi"><small>Total auditorías</small><strong id="gAudits">-</strong></div>
+    <div class="kpi"><small>Auditorías del mes</small><strong id="gAudits">-</strong></div>
     <div class="kpi"><small>Sucursal líder YTD</small><strong id="gLeader">-</strong></div>
     <div class="kpi"><small>Brecha entre sucursales</small><strong id="gGap">-</strong></div>
   </div>
@@ -365,10 +370,7 @@ function drawTrend(r,y){
 function sectorTrendTableHtml(items){let h='<thead><tr><th>Sector</th><th>Último mes</th><th>Resultado</th><th>Tendencia</th></tr></thead><tbody>';items.forEach(x=>{let last=x.pts[x.pts.length-1],prev=x.pts[x.pts.length-2],delta=prev?last.v-prev.v:null,trend=delta==null?"Sin comparativo":`${delta>=0?"+":""}${delta.toFixed(1)} pts`;h+=`<tr><td class="left"><b>${x.e}</b></td><td>${MONTHS[last.m-1]}</td><td>${dot(last.v)}</td><td class="${delta==null?"":delta>=0?"delta up":"delta down"}">${trend}</td></tr>`});return h+"</tbody>"}
 function currentYear(){return Math.max(...DATA.map(x=>x.anio).filter(Boolean),new Date().getFullYear())}
 function latestMonth(rows,y){let ms=rows.filter(x=>x.anio===y).map(x=>x.mes).filter(Boolean);return ms.length?Math.max(...ms):1}
-function branchSummary(b,y,m){let rows=DATA.filter(x=>x.ubicacion===b),bm=latestMonth(rows,y),compareMonth=m||bm,mr=rows.filter(x=>x.anio===y&&x.mes===bm),yr=rows.filter(x=>x.anio===y&&x.mes<=compareMonth),areas=group(yr,x=>x.area),weakS=["Organizar","Ordenar","Limpiar","Estandarizar","Disciplina"].map(s=>[s,avg(yr.map(x=>x.cincoS[s]))]).sort((a,b)=>a[1]-b[1]);return{branch:b,rows,mr,yr,monthNum:bm,month:avg(mr.map(x=>x.puntaje)),ytd:avg(yr.map(x=>x.puntaje)),audits:rows.length,monthAudits:mr.length,areas:uniq(rows,"area").length,sectors:uniq(rows,"sector").length,best:areas[0]||["-",0],worst:areas[areas.length-1]||["-",0],weakS:weakS[0]||["-",0]}}
 function deltaText(a,b){let d=a-b,cls=d>=0?"up":"down";return`<span class="delta ${cls}">${d>=0?"+":""}${d.toFixed(1)} pts</span>`}
-function renderBranchCards(items){branchCompare.innerHTML=items.map(s=>`<div class="branch-card"><h3>${s.branch}</h3><div class="branch-metrics"><div class="mini-metric"><small>Último mes (${MONTHS[s.monthNum-1]||"-"})</small><b>${s.mr.length?s.month.toFixed(1)+"%":"-"}</b></div><div class="mini-metric"><small>YTD</small><b>${s.yr.length?s.ytd.toFixed(1)+"%":"-"}</b></div><div class="mini-metric"><small>Auditorías</small><b>${s.audits}</b></div><div class="mini-metric"><small>Áreas / sectores</small><b>${s.areas}/${s.sectors}</b></div></div><div class="note" style="margin:12px 0 0;display:block"><b>Mejor área YTD:</b> ${s.best[0]} (${s.best[1].toFixed(0)}%) · <b>Área a reforzar YTD:</b> ${s.worst[0]} (${s.worst[1].toFixed(0)}%)</div></div>`).join("")}
-function renderGeneralBars(items){generalBars.className="general-bars";generalBars.innerHTML=items.map(s=>{let d=s.month-s.ytd;return`<div class="general-bar-card"><div class="general-bar-head"><b>${s.branch}</b><span>${d>=0?"+":""}${d.toFixed(1)} pts mes vs YTD</span></div><div class="bar"><div class="bar-name">Mes</div><div class="track"><div class="fill" style="width:${Math.max(s.month,4)}%;background:${col(s.month)}">${s.month.toFixed(0)}%</div></div><b>${s.month.toFixed(0)}%</b></div><div class="bar"><div class="bar-name">YTD</div><div class="track"><div class="fill" style="width:${Math.max(s.ytd,4)}%;background:${col(s.ytd)}">${s.ytd.toFixed(0)}%</div></div><b>${s.ytd.toFixed(0)}%</b></div></div>`}).join("")+`<div class="general-note">Objetivo operativo: 80% · Verde desde 85%</div>`}
 function drawGeneralRadar(items){
  let c=generalRadar,ctx=c.getContext("2d"),rect=c.getBoundingClientRect(),d=devicePixelRatio||1;
  c.width=rect.width*d;c.height=rect.height*d;ctx.scale(d,d);
@@ -392,7 +394,7 @@ function drawGeneralRadar(items){
  });
  generalRadarLegend.innerHTML=items.map((s,i)=>`<span><i class="dot" style="background:${colors[i]}"></i>${s.branch}</span>`).join("")+`<span><i class="dot" style="background:#d93c31"></i>Objetivo 80%</span>`
 }
-function drawGeneralTrend(y){
+function drawGeneralTrend(y,limitMonth=12){
  let c=generalTrend,ctx=c.getContext("2d"),rect=c.getBoundingClientRect(),d=devicePixelRatio||1;
  c.width=rect.width*d;c.height=rect.height*d;ctx.scale(d,d);
  let w=rect.width,h=rect.height,pL=54,pR=130,pT=22,pB=48,plotW=w-pL-pR,plotH=h-pT-pB;
@@ -411,7 +413,7 @@ function drawGeneralTrend(y){
  branches.forEach((b,ix)=>{
   let points=[];
   for(let m=1;m<=12;m++){
-   let z=DATA.filter(x=>x.ubicacion===b&&x.anio===y&&x.mes===m).map(x=>x.puntaje);
+   let z=DATA.filter(x=>x.ubicacion===b&&x.anio===y&&x.mes===m&&x.mes<=limitMonth).map(x=>x.puntaje);
    if(!z.length)continue;
    let v=avg(z);points.push({xx:xFor(m),yy:yFor(v),v});
   }
@@ -426,7 +428,6 @@ function drawGeneralTrend(y){
  MONTHS.forEach((m,i)=>{ctx.fillStyle="#667085";ctx.font="10px Arial";ctx.textAlign="center";ctx.fillText(m.slice(0,3),xFor(i+1),h-14)});
  generalTrendLegend.innerHTML=branches.map((b,i)=>`<span><i class="dot" style="background:${colors[i]}"></i>${b}</span>`).join("");
 }
-function showGeneral(){dashboardView.style.display="none";subTabs.style.display="none";methodologyView.classList.remove("active");generalView.classList.add("active");status.style.visibility="visible";yearLabel.style.visibility="visible";let y=currentYear(),m=latestMonth(DATA,y),items=["Casa Central","Dolores"].map(b=>branchSummary(b,y,m)).sort((a,b)=>b.ytd-a.ytd),allY=DATA.filter(x=>x.anio===y&&x.mes<=m),allM=DATA.filter(x=>x.anio===y&&x.mes===m),leader=items[0],gap=Math.abs(items[0].ytd-items[1].ytd);mainTitle.textContent="RESULTADO GENERAL 5S - CASA CENTRAL VS DOLORES";yearLabel.textContent=y;generalInfo.textContent=`Comparativo general · ${MONTHS[m-1]} ${y}`;generalCounts.innerHTML=dataCounts.innerHTML;gMonth.textContent=allM.length?avg(allM.map(x=>x.puntaje)).toFixed(1)+"%":"-";gYtd.textContent=allY.length?avg(allY.map(x=>x.puntaje)).toFixed(1)+"%":"-";gAudits.textContent=DATA.length;gLeader.textContent=leader?leader.branch:"-";gGap.innerHTML=gap?deltaText(items[0].ytd,items[1].ytd):"0 pts";renderBranchCards(items);renderGeneralBars(items);drawGeneralRadar(items);drawGeneralTrend(y);let weak=["Organizar","Ordenar","Limpiar","Estandarizar","Disciplina"].map(s=>[s,avg(allY.map(x=>x.cincoS[s]))]).sort((a,b)=>a[1]-b[1]);generalWeakS.innerHTML=bars(weak);generalRank.innerHTML=rankTable(group(allY,x=>`${x.ubicacion} / ${x.area}`));generalOwnerRank.innerHTML=ownerRankTable(allY);let worst=group(allY,x=>`${x.ubicacion} / ${x.area}`).sort((a,b)=>a[1]-b[1])[0]||["-",0];generalInsights.innerHTML=`<div class="insight"><small>Sucursal líder YTD</small><b>${leader.branch} ${leader.ytd.toFixed(1)}%</b></div><div class="insight"><small>Brecha YTD</small><b>${items[0].branch} vs ${items[1].branch}: ${gap.toFixed(1)} pts</b></div><div class="insight"><small>Área más débil YTD</small><b>${worst[0]} ${worst[1].toFixed(0)}%</b></div><div class="insight"><small>5S a reforzar</small><b>${weak[0][0]} ${weak[0][1].toFixed(0)}%</b></div>`}
 function validRows(rows){return rows.map(norm).filter(x=>x.ubicacion)}
 function branchCounts(){return{"Casa Central":DATA.filter(x=>x.ubicacion==="Casa Central").length,"Dolores":DATA.filter(x=>x.ubicacion==="Dolores").length}}
 function renderCounts(counts){let total=counts["Casa Central"]+counts["Dolores"];dataCounts.innerHTML=`<span class="count-pill">Casa Central: <b>${counts["Casa Central"]}</b></span><span class="count-pill">Dolores: <b>${counts["Dolores"]}</b></span><span class="count-pill">Total: <b>${total}</b></span>`}
@@ -437,8 +438,9 @@ function showDashboard(){dashboardView.style.display="block";subTabs.style.displ
 function showMethodology(){loadSeq++;dashboardView.style.display="none";subTabs.style.display="none";generalView.classList.remove("active");methodologyView.classList.add("active");mainTitle.textContent="METODOLOGÍA 5S - DEL PALACIO S.A.";status.style.visibility="hidden";yearLabel.style.visibility="hidden"}
 document.querySelectorAll(".tab").forEach(t=>t.onclick=async()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");if(t.dataset.section==="methodology"){showMethodology();return}if(t.dataset.section==="general"){if(DATA.length)showGeneral();await loadLive(false);showGeneral();return}branch=t.dataset.branch;showDashboard();if(DATA.length)init();await loadLive(true)});
 document.querySelectorAll(".subtab").forEach(t=>t.onclick=async()=>{document.querySelectorAll(".subtab").forEach(x=>x.classList.remove("active"));t.classList.add("active");view=t.dataset.view;if(DATA.length)update();await loadLive(false)});
-["fy","fm","fa","fs","fu"].forEach(id=>document.getElementById(id).onchange=update);window.onresize=update;loadLive();
+["fy","fm","fa","fs","fu"].forEach(id=>document.getElementById(id).onchange=update);window.onresize=()=>generalView.classList.contains("active")?showGeneral():update();loadLive();
 </script>
 <script src="monthly-report.js"></script>
+<script src="general-report.js"></script>
 </body>
 </html>

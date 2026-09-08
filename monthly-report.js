@@ -74,7 +74,58 @@ function monthlyReportHtml() {
   const source = status.textContent;
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><base href="about:srcdoc">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>${escaped(title)}</title><style>${document.querySelector('style').textContent}
+    <title>${escaped(title)}</title><style>${monthlyReportStyles()}</style></head><body>
+    <div class="report-head"><div class="report-brand"><div><p class="report-eyebrow">Del Palacio · Informe mensual 5S</p><h1>${escaped(branch)}</h1><p class="report-period">${escaped(period)}</p></div><img src="${escaped(new URL('img/LogoDPO.jpg', location.href).href)}" alt="DPO"></div>
+    <div class="report-filters">${[fa.value ? `Área: ${fa.value}` : 'Todas las áreas', fs.value ? `Sector: ${fs.value}` : 'Todos los sectores', fu.value ? `Auditor: ${fu.value}` : 'Todos los auditores'].map(label => `<span class="report-chip">${escaped(label)}</span>`).join('')}</div>
+    <p class="report-meta">Emitido: ${escaped(new Date().toLocaleString('es-AR'))} · Fuente: ${escaped(source)}<br>
+    YTD: enero a ${escaped(MONTHS[month - 1])}. Matrices y evolución con corte en el mes seleccionado.</p>
+    <div class="report-scale"><b>Objetivo 80%</b><span><i class="dot" style="background:#2e9d50"></i>≥85%</span><span><i class="dot" style="background:#e5ad18"></i>70–84%</span><span><i class="dot" style="background:#d93c31"></i>&lt;70%</span><span>“–” Sin datos</span></div></div>
+    <nav class="report-nav" aria-label="Secciones del informe"><a href="#report-summary">Resumen</a><a href="#report-areas">Áreas</a><a href="#report-sectors">Sectores</a><a href="#report-findings">Hallazgos</a></nav>
+    ${monthRows.length ? '' : '<p class="report-empty">Sin auditorías en el mes seleccionado para estos filtros. El acumulado incluye únicamente los meses anteriores con datos.</p>'}
+    <div class="report-section-head" id="report-summary"><span class="report-number">01</span><div><h2>Resumen de resultados</h2><p>Desempeño del mes y acumulado anual.</p></div></div>${summary}
+    ${monthRows.length ? '' : '<p>Los gráficos del mes sin auditorías no representan un resultado evaluado.</p>'}
+    <section class="report-section" id="report-areas"><div class="report-section-head"><span class="report-number">02</span><div><h2>Resultados por área</h2><p>Matriz mensual, responsables, ranking y evolución.</p></div></div>${areas}</section>
+    <section class="report-section" id="report-sectors"><div class="report-section-head"><span class="report-number">03</span><div><h2>Resultados por sector</h2><p>Sectores agrupados por área.<span class="report-scroll-hint"> Deslizá las tablas para ver todos los meses.</span></p></div></div>${sectors}</section>
+    <section class="report-section" id="report-findings"><div class="report-section-head"><span class="report-number">04</span><div><h2>Auditorías y hallazgos</h2><p>Observaciones y acciones registradas en ${escaped(period)}.</p></div></div>
+    <p class="report-footnote">Los resultados son promedios de las auditorías disponibles para los filtros seleccionados. La ausencia de datos no equivale a un resultado de 0%.</p>${monthRows.length ? findings : '<p>Sin auditorías para mostrar.</p>'}</section>
+    </body></html>`;
+}
+
+function openMonthlyReport() {
+  const isGeneral = generalView.classList.contains("active");
+  if (!(isGeneral ? document.getElementById("generalYear").value : fy.value)) {
+    alert('Seleccioná un año con datos para generar el reporte.');
+    return;
+  }
+  let dialog = document.getElementById('monthlyReportDialog');
+  if (!dialog) {
+    dialog = document.createElement('dialog');
+    dialog.id = 'monthlyReportDialog';
+    dialog.setAttribute('aria-label', 'Vista previa del reporte mensual');
+    dialog.innerHTML = '<div class="report-toolbar"><div><h2>Informe mensual 5S</h2><p id="reportPreviewPeriod"></p></div><div class="report-actions"><button class="report-print" id="printMonthlyReport" disabled>Imprimir / Guardar PDF</button><button id="closeMonthlyReport" autofocus>Cerrar</button></div></div><p class="report-help">Vista previa · Para descargar el informe, elegí “Guardar como PDF” en la ventana de impresión.</p><iframe class="report-preview" title="Reporte mensual 5S" sandbox="allow-same-origin allow-modals"></iframe>';
+    document.body.append(dialog);
+    dialog.querySelector('#closeMonthlyReport').onclick = () => dialog.close();
+    dialog.querySelector('#printMonthlyReport').onclick = () => {
+      const frame = dialog.querySelector('iframe');
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+    };
+  }
+  const printButton = dialog.querySelector('#printMonthlyReport');
+  const frame = dialog.querySelector('iframe');
+  printButton.disabled = true;
+  frame.onload = () => { printButton.disabled = false; };
+  frame.srcdoc = isGeneral ? generalMonthlyReportHtml() : monthlyReportHtml();
+  dialog.querySelector('#reportPreviewPeriod').textContent = `${branch} · ${fm.value ? MONTHS[+fm.value.split('|')[0] - 1] : MONTHS[Math.max(...filtered().filter(row => row.anio === +fy.value).map(row => row.mes), 1) - 1]} ${fy.value}`;
+  if (isGeneral) {
+    const {year, month} = generalPeriod();
+    dialog.querySelector("#reportPreviewPeriod").textContent = `General | ${MONTHS[month - 1]} ${year}`;
+  }
+  dialog.showModal();
+}
+
+function monthlyReportStyles() {
+  return `${document.querySelector('style').textContent}
     body{background:#edf2f7;padding:28px;color:#263445;max-width:1400px;margin:auto}
     .report-head{background:#fff;border:1px solid #d8e0e8;border-top:5px solid #173b63;border-radius:12px;margin-bottom:24px;padding:24px}
     .report-brand{display:flex;justify-content:space-between;align-items:center;gap:16px}
@@ -125,47 +176,5 @@ function monthlyReportHtml() {
       .winners{grid-template-columns:repeat(6,minmax(0,1fr))}.winner{padding:7px}.winner b{font-size:12px}.winner small{font-size:9px}.winner span{font-size:10px}
       #matrix thead th{font-size:8px;overflow-wrap:normal}.report-footnote{font-size:10px;margin:6px 0 10px}}
     @media print{.detail td{font-size:9px;line-height:1.2;padding:4px 3px}}
-    </style></head><body>
-    <div class="report-head"><div class="report-brand"><div><p class="report-eyebrow">Del Palacio · Informe mensual 5S</p><h1>${escaped(branch)}</h1><p class="report-period">${escaped(period)}</p></div><img src="${escaped(new URL('img/LogoDPO.jpg', location.href).href)}" alt="DPO"></div>
-    <div class="report-filters">${[fa.value ? `Área: ${fa.value}` : 'Todas las áreas', fs.value ? `Sector: ${fs.value}` : 'Todos los sectores', fu.value ? `Auditor: ${fu.value}` : 'Todos los auditores'].map(label => `<span class="report-chip">${escaped(label)}</span>`).join('')}</div>
-    <p class="report-meta">Emitido: ${escaped(new Date().toLocaleString('es-AR'))} · Fuente: ${escaped(source)}<br>
-    YTD: enero a ${escaped(MONTHS[month - 1])}. Matrices y evolución con corte en el mes seleccionado.</p>
-    <div class="report-scale"><b>Objetivo 80%</b><span><i class="dot" style="background:#2e9d50"></i>≥85%</span><span><i class="dot" style="background:#e5ad18"></i>70–84%</span><span><i class="dot" style="background:#d93c31"></i>&lt;70%</span><span>“–” Sin datos</span></div></div>
-    <nav class="report-nav" aria-label="Secciones del informe"><a href="#report-summary">Resumen</a><a href="#report-areas">Áreas</a><a href="#report-sectors">Sectores</a><a href="#report-findings">Hallazgos</a></nav>
-    ${monthRows.length ? '' : '<p class="report-empty">Sin auditorías en el mes seleccionado para estos filtros. El acumulado incluye únicamente los meses anteriores con datos.</p>'}
-    <div class="report-section-head" id="report-summary"><span class="report-number">01</span><div><h2>Resumen de resultados</h2><p>Desempeño del mes y acumulado anual.</p></div></div>${summary}
-    ${monthRows.length ? '' : '<p>Los gráficos del mes sin auditorías no representan un resultado evaluado.</p>'}
-    <section class="report-section" id="report-areas"><div class="report-section-head"><span class="report-number">02</span><div><h2>Resultados por área</h2><p>Matriz mensual, responsables, ranking y evolución.</p></div></div>${areas}</section>
-    <section class="report-section" id="report-sectors"><div class="report-section-head"><span class="report-number">03</span><div><h2>Resultados por sector</h2><p>Sectores agrupados por área.<span class="report-scroll-hint"> Deslizá las tablas para ver todos los meses.</span></p></div></div>${sectors}</section>
-    <section class="report-section" id="report-findings"><div class="report-section-head"><span class="report-number">04</span><div><h2>Auditorías y hallazgos</h2><p>Observaciones y acciones registradas en ${escaped(period)}.</p></div></div>
-    <p class="report-footnote">Los resultados son promedios de las auditorías disponibles para los filtros seleccionados. La ausencia de datos no equivale a un resultado de 0%.</p>${monthRows.length ? findings : '<p>Sin auditorías para mostrar.</p>'}</section>
-    </body></html>`;
-}
-
-function openMonthlyReport() {
-  if (!fy.value) {
-    alert('Seleccioná un año con datos para generar el reporte.');
-    return;
-  }
-  let dialog = document.getElementById('monthlyReportDialog');
-  if (!dialog) {
-    dialog = document.createElement('dialog');
-    dialog.id = 'monthlyReportDialog';
-    dialog.setAttribute('aria-label', 'Vista previa del reporte mensual');
-    dialog.innerHTML = '<div class="report-toolbar"><div><h2>Informe mensual 5S</h2><p id="reportPreviewPeriod"></p></div><div class="report-actions"><button class="report-print" id="printMonthlyReport" disabled>Imprimir / Guardar PDF</button><button id="closeMonthlyReport" autofocus>Cerrar</button></div></div><p class="report-help">Vista previa · Para descargar el informe, elegí “Guardar como PDF” en la ventana de impresión.</p><iframe class="report-preview" title="Reporte mensual 5S" sandbox="allow-same-origin allow-modals"></iframe>';
-    document.body.append(dialog);
-    dialog.querySelector('#closeMonthlyReport').onclick = () => dialog.close();
-    dialog.querySelector('#printMonthlyReport').onclick = () => {
-      const frame = dialog.querySelector('iframe');
-      frame.contentWindow.focus();
-      frame.contentWindow.print();
-    };
-  }
-  const printButton = dialog.querySelector('#printMonthlyReport');
-  const frame = dialog.querySelector('iframe');
-  printButton.disabled = true;
-  frame.onload = () => { printButton.disabled = false; };
-  frame.srcdoc = monthlyReportHtml();
-  dialog.querySelector('#reportPreviewPeriod').textContent = `${branch} · ${fm.value ? MONTHS[+fm.value.split('|')[0] - 1] : MONTHS[Math.max(...filtered().filter(row => row.anio === +fy.value).map(row => row.mes), 1) - 1]} ${fy.value}`;
-  dialog.showModal();
+    `;
 }
