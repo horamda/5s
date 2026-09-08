@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DPO 5S - del Palacio S.A.</title>
+<link rel="stylesheet" href="monthly-report.css">
 <style>
 :root{--navy:#173b63;--blue:#2d6ea6;--green:#2e9d50;--yellow:#e5ad18;--red:#d93c31;--gray:#7a8087;--bg:#eef1f4;--card:#fff;--line:#d8e0e8}
 *{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#263445}
@@ -22,6 +23,7 @@ label{font-size:10px;color:#6b7280;font-weight:800;text-transform:uppercase;disp
 .bar{display:grid;grid-template-columns:minmax(92px,160px) minmax(120px,1fr) 54px;gap:8px;align-items:center;margin:9px 0;font-size:12px;text-align:center}.bar-name{overflow:hidden;text-overflow:ellipsis;text-align:center}.bar b{text-align:center}.track{height:20px;background:#e5e7eb;border-radius:999px;overflow:hidden;position:relative}.fill{height:100%;min-width:28px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 7px;color:#fff;font-size:10px;font-weight:800;text-align:center}
 .legend,.chart-legend{display:flex;gap:12px;font-size:11px;justify-content:flex-end;margin:6px 0 9px;flex-wrap:wrap}.chart-legend{justify-content:center;margin-top:10px}.dot{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:4px}
 table{width:100%;border-collapse:collapse}th,td{border:1px solid #aeb7c0;padding:6px;font-size:10px;text-align:center}th{background:#73777c;color:#fff}.left{text-align:left}.owner{font-weight:800}.area-almacen{background:#fff176}.area-oficinas{background:#f8c6c6}.area-flota{background:#c6df95}
+#matrix thead th{position:sticky;top:0;z-index:1}#matrix .matrix-group+.matrix-group tr:first-child>*{border-top:3px solid #7a8fa3}#matrix .matrix-area{font-weight:800;vertical-align:middle;min-width:90px;color:#263445}#matrix .matrix-label{font-weight:700}#matrix .matrix-empty{padding:22px;color:#64748b}
 .scroll{overflow:auto;max-height:480px}.rank td,.rank th{font-size:11px}.rank th{background:#8ab6df;color:#111}.canvas{height:340px;min-height:280px}canvas{width:100%;height:100%;display:block}
 .note{background:#fff;border:1px solid #ead69b;border-left:5px solid var(--yellow);padding:12px;margin-bottom:10px;border-radius:8px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;box-shadow:0 1px 4px rgba(23,59,99,.05)}.note-title{font-size:11px;font-weight:900;color:#7a5300;text-transform:uppercase}.scale-chips,.signal-chips{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.scale-chip,.signal-chip{border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800;white-space:nowrap}.scale-chip{background:#f3f6fa;color:#334155;border:1px solid #d7dee8}.signal-chip{color:#fff}.signal-green{background:var(--green)}.signal-yellow{background:var(--yellow);color:#3b2a00}.signal-red{background:var(--red)}.target-chip{background:#173b63;color:#fff;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:900;white-space:nowrap}
 .methodology{display:none;max-width:1200px;margin:0 auto;padding:0 12px 28px}.methodology.active{display:block}.method-head{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:12px;display:grid;grid-template-columns:120px 1fr 220px;gap:18px;align-items:center}.brand-mark{width:96px;height:96px;object-fit:contain;justify-self:center}.brand-dpo{max-width:220px;width:100%;height:auto;justify-self:end}.method-title h2{margin:0 0 6px;color:var(--navy);font-size:clamp(22px,3vw,34px);line-height:1.1}.method-title p{margin:0;color:#4b5563;font-size:14px}.policy-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;box-shadow:0 1px 4px rgba(23,59,99,.06)}.policy-card img{display:block;width:100%;height:auto;border-radius:6px;border:1px solid #d7dee6}
@@ -61,6 +63,7 @@ table{width:100%;border-collapse:collapse}th,td{border:1px solid #aeb7c0;padding
     <div class="panel-actions">
       <div class="data-counts" id="dataCounts"></div>
       <button class="refresh" onclick="loadLive()">Actualizar datos</button>
+      <button class="refresh" onclick="openMonthlyReport()">Reporte del mes</button>
     </div>
   </div>
   <div class="filters">
@@ -189,8 +192,8 @@ function normAreaBySector(area,sector){
  if(["administracion","ventas","logistica"].includes(s))return"Oficinas";
  return a
 }
-function field(raw,needle){let n=key(needle);let k=Object.keys(raw).find(x=>key(x).includes(n));return k?raw[k]:""}
-function norm(raw){let q=Object.keys(raw).filter(k=>/^\d+\./.test(k));let d=dp(raw.Fecha),sector=clean(raw.Sector);let scores=q.map(k=>{let m=String(raw[k]).match(/^\s*([1-5])/);return m?+m[1]:null});let g={Organizar:scores.slice(0,4),Ordenar:scores.slice(4,8),Limpiar:scores.slice(8,12),Estandarizar:scores.slice(12,16),Disciplina:scores.slice(16,20)};return{fecha:d.iso,anio:d.y,mes:d.m,ubicacion:normBranch(raw.Ubicacion),area:normAreaBySector(raw.Area,sector),sector,auditor:clean(raw.Auditor),observaciones:field(raw,"observaciones")||field(raw,"desv"),accion:field(raw,"accion"),respuestas:scores,preguntas:q.map(x=>x.replace(/^\d+\.\s*/,"").trim()),puntaje:avg(scores.map(x=>x==null?null:x*20)),cincoS:Object.fromEntries(Object.entries(g).map(([k,v])=>[k,avg(v.map(x=>x==null?null:x*20))]))}}
+function field(raw,needle){let n=key(needle);let k=Object.keys(raw).find(x=>!/^\d+\./.test(x)&&key(x).includes(n));return k?raw[k]:""}
+function norm(raw){let q=Object.keys(raw).filter(k=>/^\d+\./.test(k));let d=dp(raw.Fecha),sector=clean(raw.Sector);let scores=q.map(k=>{let m=String(raw[k]).match(/^\s*([1-5])/);return m?+m[1]:null});let g={Organizar:scores.slice(0,4),Ordenar:scores.slice(4,8),Limpiar:scores.slice(8,12),Estandarizar:scores.slice(12,16),Disciplina:scores.slice(16,20)};return{fecha:d.iso,anio:d.y,mes:d.m,ubicacion:normBranch(raw.Ubicacion),area:normAreaBySector(raw.Area,sector),sector,auditor:clean(raw.Auditor),observaciones:field(raw,"observaciones")||field(raw,"desvios detectados"),accion:field(raw,"accion sugerida"),respuestas:scores,preguntas:q.map(x=>x.replace(/^\d+\.\s*/,"").trim()),puntaje:avg(scores.map(x=>x==null?null:x*20)),cincoS:Object.fromEntries(Object.entries(g).map(([k,v])=>[k,avg(v.map(x=>x==null?null:x*20))]))}}
 function ownerByBranch(b,a){return (OWNERS[b]&&OWNERS[b][a])||"Sin asignar"}
 function owner(a){return ownerByBranch(branch,a)}function col(v){return v>=85?"#2e9d50":v>=70?"#e5ad18":"#d93c31"}function dot(v){return `<span class="dot" style="background:${col(v)}"></span>${v.toFixed(0)}%`}function uniq(r,f){return [...new Set(r.map(x=>x[f]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)))}
 function fill(id,v,label="Todos"){document.getElementById(id).innerHTML=`<option value="">${label}</option>`+v.map(x=>`<option value="${x}">${String(x).includes("|")?String(x).split("|")[1]:x}</option>`).join("")}
@@ -203,20 +206,47 @@ function entityOwner(r){return owner(r.area)}
 function areaClass(a){let x=(a||"").toLowerCase();return x.includes("almacen")||x.includes("almacén")||x.includes("almac")?"area-almacen":x.includes("oficina")?"area-oficinas":x.includes("flota")?"area-flota":""}
 
 function init(){let r=branchRows(),ys=[...new Set(r.map(x=>x.anio).filter(Boolean))].sort((a,b)=>b-a);fill("fy",ys);fy.value=ys[0]||"";fill("fm",MONTHS.map((m,i)=>`${i+1}|${m}`),"Último mes disponible");fill("fa",uniq(r,"area"));fill("fs",uniq(r,"sector"));fill("fu",uniq(r,"auditor"));update()}
-function update(){
- let r=filtered(),y=+fy.value,m=fm.value?+fm.value.split("|")[0]:Math.max(...r.filter(x=>x.anio===y).map(x=>x.mes).filter(Boolean),1),mr=r.filter(x=>x.anio===y&&x.mes===m),yr=r.filter(x=>x.anio===y&&x.mes<=m);
+function update(reportRows){
+ let r=Array.isArray(reportRows)?reportRows:filtered(),y=+fy.value,m=fm.value?+fm.value.split("|")[0]:Math.max(...r.filter(x=>x.anio===y).map(x=>x.mes).filter(Boolean),1),mr=r.filter(x=>x.anio===y&&x.mes===m),yr=r.filter(x=>x.anio===y&&x.mes<=m);
  mainTitle.textContent=`EVOLUCIÓN 5S POR ${view==="areas"?"ÁREA":"SECTOR"} - ${branch.toUpperCase()} - DEL PALACIO S.A.`;yearLabel.textContent=y||"";branchInfo.textContent=`${branch} · ${view==="areas"?"Vista por áreas":"Vista por sectores"} · ${branchRows().length} auditorías`;
  km.textContent=mr.length?avg(mr.map(x=>x.puntaje)).toFixed(1)+"%":"-";ky.textContent=yr.length?avg(yr.map(x=>x.puntaje)).toFixed(1)+"%":"-";ka.textContent=mr.length;ke.textContent=new Set(mr.map(entity)).size;entityLabel.textContent=view==="areas"?"Áreas evaluadas":"Sectores evaluados";let c=0;mr.forEach(x=>x.respuestas.forEach(v=>{if(v!=null&&v<=2)c++}));kc.textContent=c;
  let ss=["Organizar","Ordenar","Limpiar","Estandarizar","Disciplina"];barsMonth.innerHTML=bars(ss.map(s=>[s,avg(mr.map(x=>x.cincoS[s]))]));barsYtd.innerHTML=bars(ss.map(s=>[s,avg(yr.map(x=>x.cincoS[s]))]));drawRadar(ss.map(s=>avg(yr.map(x=>x.cincoS[s]))));
- matrixTitle.textContent=view==="areas"?"Matriz mensual por área y dueño":"Matriz mensual por sector";rankMainTitle.textContent=view==="areas"?"Ranking mensual por área":"Ranking mensual por sector";rankSecondTitle.textContent=view==="areas"?"Ranking mensual por dueño":"Ranking mensual por área";trendTitle.textContent=view==="areas"?"Evolución mensual por área":"Evolución mensual de sectores críticos";
+ matrixTitle.textContent=view==="areas"?"Matriz mensual por área y dueño":"Matriz mensual por sector agrupada por área";rankMainTitle.textContent=view==="areas"?"Ranking mensual por área":"Ranking mensual por sector";rankSecondTitle.textContent=view==="areas"?"Ranking mensual por dueño":"Ranking mensual por área";trendTitle.textContent=view==="areas"?"Evolución mensual por área":"Evolución mensual de sectores críticos";
  buildMatrix(r,y);buildRankings(mr);buildQuestions(mr);buildWinners(mr);drawTrend(r,y);detail.innerHTML=mr.sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x=>`<tr><td>${x.fecha}</td><td class="${areaClass(x.area)}">${x.area}</td><td class="owner">${owner(x.area)}</td><td>${x.sector}</td><td>${x.auditor}</td><td>${dot(x.puntaje)}</td><td class="left">${x.observaciones||"-"}</td><td class="left">${x.accion||"-"}</td></tr>`).join("");
 }
 function buildMatrix(r,y){
- let limitMonth=fm.value?+fm.value.split("|")[0]:Math.max(...r.filter(x=>x.anio===y).map(x=>x.mes).filter(Boolean),1);
- let entities=uniq(r.filter(x=>x.anio===y),view==="areas"?"area":"sector").map(e=>{let ytdRows=r.filter(x=>x.anio===y&&x.mes<=limitMonth&&(view==="areas"?x.area:x.sector)===e).map(x=>x.puntaje);return{e,ytd:avg(ytdRows)}}).sort((a,b)=>b.ytd-a.ytd||String(a.e).localeCompare(String(b.e)));
- let h="<thead><tr><th>"+(view==="areas"?"Dueño":"Área")+"</th><th>"+(view==="areas"?"Área":"Sector")+"</th>"+MONTHS.map(x=>`<th>${x}</th>`).join("")+"<th>YTD</th></tr></thead><tbody>";
- entities.forEach(({e,ytd})=>{let sample=r.find(x=>(view==="areas"?x.area:x.sector)===e);let first=view==="areas"?owner(e):(sample?sample.area:"");h+=`<tr><td class="${view==="areas"?"owner":areaClass(first)}">${first}</td><td class="${view==="areas"?areaClass(e):""}"><b>${e}</b></td>`;for(let m=1;m<=12;m++){let z=r.filter(x=>x.anio===y&&(view==="areas"?x.area:x.sector)===e&&x.mes===m).map(x=>x.puntaje);let v=avg(z);h+=`<td>${z.length?dot(v):"-"}</td>`}h+=`<td>${ytd?dot(ytd):"-"}</td></tr>`});matrix.innerHTML=h+"</tbody>";
+ const rows=r.filter(x=>x.anio===y);
+ const limitMonth=fm.value?+fm.value.split("|")[0]:Math.max(...rows.map(x=>x.mes).filter(Boolean),1);
+ const compare=(a,b)=>a.localeCompare(b,"es",{numeric:true,sensitivity:"base"});
+ const areas=[...new Set(rows.map(x=>x.area))].sort(compare);
+ const cells=items=>{
+  let h="";
+  for(let m=1;m<=12;m++){
+   const scores=items.filter(x=>x.mes===m).map(x=>x.puntaje);
+   h+=`<td>${scores.length?dot(avg(scores)):"-"}</td>`;
+  }
+  const ytd=items.filter(x=>x.mes<=limitMonth).map(x=>x.puntaje);
+  return h+`<td>${ytd.length?dot(avg(ytd)):"-"}</td>`;
+ };
+ let h=`<thead><tr><th scope="col">Área</th><th scope="col">${view==="areas"?"Dueño":"Sector"}</th>${MONTHS.map(x=>`<th scope="col">${x}</th>`).join("")}<th scope="col">YTD</th></tr></thead>`;
+ areas.forEach(area=>{
+  const areaRows=rows.filter(x=>x.area===area);
+  h+='<tbody class="matrix-group">';
+  if(view==="areas"){
+   h+=`<tr><th scope="row" class="matrix-area ${areaClass(area)}">${area||"Sin área"}</th><td class="owner">${owner(area)}</td>${cells(areaRows)}</tr>`;
+  }else{
+   const sectors=[...new Set(areaRows.map(x=>x.sector))].sort(compare);
+   sectors.forEach((sector,i)=>{
+    h+='<tr>';
+    if(i===0)h+=`<th scope="rowgroup" rowspan="${sectors.length}" class="matrix-area ${areaClass(area)}">${area||"Sin área"}</th>`;
+    h+=`<td class="matrix-label">${sector||"Sin sector"}</td>${cells(areaRows.filter(x=>x.sector===sector))}</tr>`;
+   });
+  }
+  h+='</tbody>';
+ });
+ matrix.innerHTML=h+(areas.length?"":'<tbody><tr><td colspan="15" class="matrix-empty">Sin datos para los filtros seleccionados</td></tr></tbody>');
 }
+
 function rankTable(items,second=false){let h="<thead><tr><th>Ranking</th><th>"+(second?(view==="areas"?"Dueño":"Área"):(view==="areas"?"Área":"Sector"))+"</th><th>Resultado</th></tr></thead><tbody>";items.forEach(([n,v],i)=>h+=`<tr><td><b>${i+1}</b></td><td>${n}</td><td>${dot(v)}</td></tr>`);return h+"</tbody>"}
 function ownerRankTable(rows){let m={};rows.forEach(x=>{let own=ownerByBranch(x.ubicacion,x.area),k=`${own}|${x.ubicacion}|${x.area}`;(m[k]??=[]).push(x.puntaje)});let items=Object.entries(m).map(([k,v])=>{let p=k.split("|");return{owner:p[0],branch:p[1],area:p[2],score:avg(v)}}).sort((a,b)=>b.score-a.score||a.owner.localeCompare(b.owner));let h="<thead><tr><th>Ranking</th><th>Dueño</th><th>Sucursal / Área</th><th>Resultado YTD</th></tr></thead><tbody>";items.forEach((x,i)=>h+=`<tr><td><b>${i+1}</b></td><td class="owner">${x.owner}</td><td>${x.branch} / ${x.area}</td><td>${dot(x.score)}</td></tr>`);return h+"</tbody>"}
 function buildRankings(mr){rankMain.innerHTML=rankTable(group(mr,x=>entity(x)));rankSecond.innerHTML=rankTable(group(mr,x=>view==="areas"?owner(x.area):x.area),true)}
@@ -272,7 +302,7 @@ function drawRadar(vals){
   ctx.fillStyle=col(v);ctx.beginPath();roundBox(ctx,bx,by,bw,bh,9);ctx.fill();
   ctx.fillStyle="#fff";ctx.font="700 11px Arial";ctx.textAlign="center";ctx.fillText(value,bx+bw/2,by+13);
  });
- ctx.fillStyle="#d93c31";ctx.font="700 11px Arial";ctx.textAlign="left";ctx.fillText("Objetivo 80%",12,h-12);
+ ctx.fillStyle="#d93c31";ctx.font="700 11px Arial";ctx.textAlign="left";ctx.fillText("Objetivo 80%",12,14);
 }
 function drawTrend(r,y){
  let c=trend,ctx=c.getContext("2d"),rect=c.getBoundingClientRect(),d=devicePixelRatio||1;
@@ -317,7 +347,7 @@ function drawTrend(r,y){
  });
  labelSlots.sort((a,b)=>a.last.yy-b.last.yy).forEach((item,i)=>{
   let value=item.last.v.toFixed(0)+"%",bx=Math.min(item.last.xx+10,w-pR+8),rowY=Math.max(pT+6,Math.min(item.last.yy-9,h-pB-22));
-  if(view==="sectores"){let minGap=20;for(let guard=0;guard<8;guard++){let hit=labelSlots.slice(0,i).some(prev=>Math.abs((prev._rowY??-999)-rowY)<minGap);if(!hit)break;rowY=Math.min(h-pB-22,rowY+minGap)}item._rowY=rowY}
+  {let minGap=20;for(let guard=0;guard<8;guard++){let hit=labelSlots.slice(0,i).some(prev=>Math.abs((prev._rowY??-999)-rowY)<minGap);if(!hit)break;rowY=Math.min(h-pB-22,rowY+minGap)}item._rowY=rowY}
   ctx.strokeStyle="rgba(100,116,139,.45)";ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(item.last.xx+5,item.last.yy);ctx.lineTo(bx,rowY+9);ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle=item.color;ctx.beginPath();roundBox(ctx,bx,rowY,36,18,9);ctx.fill();
   ctx.fillStyle="#fff";ctx.font="700 11px Arial";ctx.textAlign="center";ctx.fillText(value,bx+18,rowY+13);
@@ -409,5 +439,6 @@ document.querySelectorAll(".tab").forEach(t=>t.onclick=async()=>{document.queryS
 document.querySelectorAll(".subtab").forEach(t=>t.onclick=async()=>{document.querySelectorAll(".subtab").forEach(x=>x.classList.remove("active"));t.classList.add("active");view=t.dataset.view;if(DATA.length)update();await loadLive(false)});
 ["fy","fm","fa","fs","fu"].forEach(id=>document.getElementById(id).onchange=update);window.onresize=update;loadLive();
 </script>
+<script src="monthly-report.js"></script>
 </body>
 </html>
