@@ -53,14 +53,14 @@ function monthlyReportHtml() {
     const kpis = reportClone(dashboardView.querySelector('.kpis'));
     const pillars = reportClone(barsMonth.closest('.grid3'));
     summary = kpis + (cutoffRows.length ? pillars : '');
-    areas = reportClone(matrix.closest('.card')) +
+    areas = annualWinnersHtml(DATA, year, [branch], 'areas', month) + reportClone(matrix.closest('.card')) +
       reportClone(rankMain.closest('.grid3')) +
       reportClone(monthlyWinners.closest('.card')) +
       reportClone(trend.closest('.card'));
     findings = reportClone(detail.closest('.card'));
     view = 'sectores';
     update(cutoffRows);
-    sectors = reportClone(matrix.closest('.card')) +
+    sectors = annualWinnersHtml(DATA, year, [branch], 'sectores', month) + reportClone(matrix.closest('.card')) +
       `<div class="grid2">${reportClone(rankMain.closest('.card'))}${reportClone(rankSecond.closest('.card'))}</div>` +
       reportClone(monthlyWinners.closest('.card')) + reportClone(trend.closest('.card'));
   } finally {

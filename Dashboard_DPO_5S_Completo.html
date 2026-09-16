@@ -111,6 +111,7 @@ table{width:100%;border-collapse:collapse}th,td{border:1px solid #aeb7c0;padding
     <div class="scroll"><table id="matrix"></table></div>
   </div>
 
+  <div id="annualWinners"></div>
   <div class="grid3">
     <div class="card"><h3 id="rankMainTitle">Ranking mensual por área</h3><table class="rank" id="rankMain"></table></div>
     <div class="card"><h3 id="rankSecondTitle">Ranking mensual por dueño</h3><table class="rank" id="rankSecond"></table></div>
@@ -146,6 +147,7 @@ table{width:100%;border-collapse:collapse}th,td{border:1px solid #aeb7c0;padding
     <div class="kpi"><small>Sucursal líder YTD</small><strong id="gLeader">-</strong></div>
     <div class="kpi"><small>Brecha entre sucursales</small><strong id="gGap">-</strong></div>
   </div>
+  <div id="generalAnnualWinners"></div>
   <div class="compare-cards" id="branchCompare"></div>
   <div class="insights" id="generalInsights"></div>
   <div class="grid2">
@@ -212,12 +214,35 @@ function areaClass(a){let x=(a||"").toLowerCase();return x.includes("almacen")||
 
 function init(){let r=branchRows(),ys=[...new Set(r.map(x=>x.anio).filter(Boolean))].sort((a,b)=>b-a);fill("fy",ys);fy.value=ys[0]||"";fill("fm",MONTHS.map((m,i)=>`${i+1}|${m}`),"Último mes disponible");fill("fa",uniq(r,"area"));fill("fs",uniq(r,"sector"));fill("fu",uniq(r,"auditor"));update()}
 function update(reportRows){
+ document.getElementById('annualWinners').innerHTML=annualWinnersHtml(DATA,+fy.value,[branch],view);
  let r=Array.isArray(reportRows)?reportRows:filtered(),y=+fy.value,m=fm.value?+fm.value.split("|")[0]:Math.max(...r.filter(x=>x.anio===y).map(x=>x.mes).filter(Boolean),1),mr=r.filter(x=>x.anio===y&&x.mes===m),yr=r.filter(x=>x.anio===y&&x.mes<=m);
  mainTitle.textContent=`EVOLUCIÓN 5S POR ${view==="areas"?"ÁREA":"SECTOR"} - ${branch.toUpperCase()} - DEL PALACIO S.A.`;yearLabel.textContent=y||"";branchInfo.textContent=`${branch} · ${view==="areas"?"Vista por áreas":"Vista por sectores"} · ${branchRows().length} auditorías`;
  km.textContent=mr.length?avg(mr.map(x=>x.puntaje)).toFixed(1)+"%":"-";ky.textContent=yr.length?avg(yr.map(x=>x.puntaje)).toFixed(1)+"%":"-";ka.textContent=mr.length;ke.textContent=new Set(mr.map(entity)).size;entityLabel.textContent=view==="areas"?"Áreas evaluadas":"Sectores evaluados";let c=0;mr.forEach(x=>x.respuestas.forEach(v=>{if(v!=null&&v<=2)c++}));kc.textContent=c;
  let ss=["Organizar","Ordenar","Limpiar","Estandarizar","Disciplina"];barsMonth.innerHTML=bars(ss.map(s=>[s,avg(mr.map(x=>x.cincoS[s]))]));barsYtd.innerHTML=bars(ss.map(s=>[s,avg(yr.map(x=>x.cincoS[s]))]));drawRadar(ss.map(s=>avg(yr.map(x=>x.cincoS[s]))));
  matrixTitle.textContent=view==="areas"?"Matriz mensual por área y dueño":"Matriz mensual por sector agrupada por área";rankMainTitle.textContent=view==="areas"?"Ranking mensual por área":"Ranking mensual por sector";rankSecondTitle.textContent=view==="areas"?"Ranking mensual por dueño":"Ranking mensual por área";trendTitle.textContent=view==="areas"?"Evolución mensual por área":"Evolución mensual de sectores críticos";
  buildMatrix(r,y);buildRankings(mr);buildQuestions(mr);buildWinners(mr);drawTrend(r,y);detail.innerHTML=mr.sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x=>`<tr><td>${x.fecha}</td><td class="${areaClass(x.area)}">${x.area}</td><td class="owner">${owner(x.area)}</td><td>${x.sector}</td><td>${x.auditor}</td><td>${dot(x.puntaje)}</td><td class="left">${x.observaciones||"-"}</td><td class="left">${x.accion||"-"}</td></tr>`).join("");
+}
+function annualWinnerMonths(rows,year,sucursal,mode,cutoff=12){
+ return MONTHS.map((month,index)=>{
+  const groups=new Map();
+  rows.filter(r=>r.anio===year&&r.ubicacion===sucursal&&r.mes===index+1&&r.mes<=cutoff&&Number.isFinite(r.puntaje)).forEach(r=>{
+   const key=JSON.stringify(mode==='areas'?[r.area]:[r.area,r.sector]);
+   if(!groups.has(key))groups.set(key,{area:r.area,name:mode==='areas'?r.area:r.sector,scores:[]});
+   groups.get(key).scores.push(r.puntaje);
+  });
+  const ranked=[...groups.values()].map(g=>({...g,score:avg(g.scores)})).sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name,'es'));
+  return {month,winners:ranked.filter(g=>Math.abs(g.score-ranked[0].score)<0.000001),outsideCutoff:index+1>cutoff};
+ });
+}
+function annualWinnersHtml(rows,year,branches,mode='areas',cutoff=12){
+ const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ return branches.map(sucursal=>{
+  const body=annualWinnerMonths(rows,year,sucursal,mode,cutoff).map(({month,winners,outsideCutoff})=>{
+   if(!winners.length)return `<tr><th scope="row">${month}</th><td colspan="4">${outsideCutoff?'Fuera del período del reporte':'Sin datos'}</td></tr>`;
+   return winners.map((w,i)=>`<tr>${i===0?`<th scope="row" rowspan="${winners.length}">${month}${winners.length>1?'<br><small>Empate</small>':''}</th>`:''}<td>${esc(w.name)}${mode==='areas'?'':` <small>(${esc(w.area)})</small>`}</td><td>${esc(ownerByBranch(sucursal,w.area))}</td><td>${w.score.toFixed(2)}%</td><td>${w.scores.length}</td></tr>`).join('');
+  }).join('');
+  return `<div class="card" style="margin-bottom:12px"><h3>Matriz anual de ganadores 5S · ${esc(sucursal)} · ${year||'Sin año'} · Por ${mode==='areas'?'áreas':'sectores'}</h3><p>Mayor promedio mensual de auditorías de la sucursal. Incluye todos los empates. Responsables según la asignación actual.</p><p><small>Todas las áreas, sectores y auditores; independiente de esos filtros y del mes del dashboard.${cutoff<12?' En el reporte se muestran resultados hasta '+MONTHS[cutoff-1]+'.':''}</small></p><div class="scroll" tabindex="0" role="region" aria-label="Ganadores anuales de ${esc(sucursal)}"><table><thead><tr><th scope="col">Mes</th><th scope="col">${mode==='areas'?'Área ganadora':'Sector ganador'}</th><th scope="col">Responsable</th><th scope="col">Resultado</th><th scope="col">Auditorías del ganador</th></tr></thead><tbody>${body}</tbody></table></div></div>`;
+ }).join('');
 }
 function buildMatrix(r,y){
  const rows=r.filter(x=>x.anio===y);

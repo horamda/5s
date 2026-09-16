@@ -53,6 +53,7 @@ function showGeneral() {
   methodologyView.classList.remove('active'); generalView.classList.add('active');
   status.style.visibility = 'visible'; yearLabel.style.visibility = 'visible';
   const { year: y, month: m } = generalPeriod();
+  document.getElementById('generalAnnualWinners').innerHTML = annualWinnersHtml(DATA, y, ['Casa Central', 'Dolores']);
   const items = ['Casa Central', 'Dolores'].map(b => branchSummary(b, y, m));
   const allY = DATA.filter(row => row.anio === y && row.mes <= m), allM = allY.filter(row => row.mes === m);
   const ranked = items.filter(s => s.yr.length).sort((a, b) => b.ytd - a.ytd);
@@ -103,7 +104,7 @@ function generalMonthlyReportHtml() {
       ['areas', 'sectores'].forEach(mode => {
         view = mode; buildMatrix(rows, year);
         matrixTitle.textContent = mode === 'areas' ? 'Matriz mensual por área y dueño' : 'Matriz mensual por sector agrupada por área';
-        tables += reportClone(matrix.closest('.card'));
+        tables += reportClone(matrix.closest('.card')) + annualWinnersHtml(DATA, year, [name], mode, month);
       });
       matrices += `<section class="report-section" id="general-matrix-${index}"><div class="report-section-head"><span class="report-number">0${index + 4}</span><div><h2>${name}</h2><p>Matrices por área y sector · YTD hasta ${reportEscape(period)}.</p></div></div>${tables}</section>`;
     });
